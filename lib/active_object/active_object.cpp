@@ -7,6 +7,8 @@
 #include "mybmp280.h"
 // #include "myhx711.h"
 #include "sprint_serial_data.h"
+#include "myeeprom.h"
+#include "EEPROM.h"
 
 static event_status_t proobject_state_handle_MENU_SM(proobject_t *const mobj, event_t const *const e);
 static event_status_t proobject_state_handle_SPINT_DATA_SM(proobject_t *const mobj, event_t const *const e);
@@ -25,6 +27,7 @@ static void sprint_signal(proobject_t *const mobj, event_t const * const e);
 
 static uint16_t internal_signal;
 
+static uint32_t counter_propeller;
 
 uint16_t get_internal_signal(){
     return internal_signal;
@@ -39,14 +42,14 @@ void led_notification();
 
 void buzzer_notification(){
     digitalWrite(BUZZER_GPIO,HIGH);
-    delay(20);
+    delay(40);
     digitalWrite(BUZZER_GPIO,LOW);
 }
 
 void led_notification(){
-    digitalWrite(LED_BUILTIN,HIGH);
+    digitalWrite(LED_LOADCELL_SM_NOTIFICATION,HIGH);
     delay(20);
-    digitalWrite(LED_BUILTIN,LOW);
+    digitalWrite(LED_LOADCELL_SM_NOTIFICATION,LOW);
 }
 
 
@@ -81,20 +84,74 @@ static void save_data_to_sprint_terminal(proobject_t *const mobj){
     mobj->globalsprint.sprint.voltage = mobj->globaldata.voltage;
 }
 
+static uint32_t rpmtimer = millis();
+
+void toggleLED() {
+  counter_propeller++;
+  digitalWrite(LED_RPM_INTERRUPT, !digitalRead(LED_RPM_INTERRUPT));
+}
+
+
+static uint8_t process_rpm_value(uint8_t btn_pad_value){
+  static button_state_t btn_sm_state = NOT_PRESSED;
+  static uint32_t curr_time = millis();
+
+  switch(btn_sm_state){
+    case NOT_PRESSED:
+    {
+      if(btn_pad_value){
+        btn_sm_state = BOUNCE;
+        curr_time = millis();
+      }
+    break;
+    }
+    case BOUNCE:{
+    if(millis() - curr_time >= 40 ){
+      //50ms has passed 
+    if(btn_pad_value){
+        btn_sm_state = PRESSED;
+        return btn_pad_value;
+    }
+    else
+          btn_sm_state = NOT_PRESSED;
+    }
+      break;
+    case PRESSED:{
+      if(!btn_pad_value){
+        btn_sm_state = BOUNCE;
+        curr_time = millis();
+      }
+      break;
+    }
+    }
+  }
+  return 0;
+}
 
 void proobject_init(proobject_t *const mobj){
+    /*Interrup RPM*/
+    pinMode(RPM_INTERRUPT_GPIO,INPUT_PULLUP);
+    pinMode(LED_RPM_INTERRUPT,OUTPUT);
+    attachInterrupt(digitalPinToInterrupt(RPM_INTERRUPT_GPIO), toggleLED, FALLING);
     /*Button Init*/
     pinMode(BUTTON_SETTING_SIG,INPUT);
     pinMode(BUTTON_BACK_SIG,INPUT);
     pinMode(BUTTON_INCREASE_SIG,INPUT);
     pinMode(BUTTON_DECREASE_SIG,INPUT);
     pinMode(BUZZER_GPIO,OUTPUT);
+    /*Led Init*/
+    pinMode(LED_SERIAL_PRINT,OUTPUT);
+    pinMode(LED_LOADCELL_SM_NOTIFICATION,OUTPUT);
+    pinMode(LED_TICK_CALLBACK,OUTPUT);
     /*Sensor init*/
     //my_bmp280_init(&mobj->bmp280);
     /*Lcd Init*/
     lcd_init();
+    /*Init Loadcel*/
+    mobj->loadcell_calibration.isCalibrationDone = false;
     /*Serial Print Init*/
     serial_sprint_data_init(&mobj->globalsprint);
+    mobj->dlcd.baudrate = mobj->globalsprint.baudrate;
     event_t ee; 
     ee.sig = ENTRY;
     mobj->active_state = MENU_SM;
@@ -330,21 +387,47 @@ static event_status_t proobject_state_handle_CALIB_HX711_SM(proobject_t *const m
         {
             buzzer_notification();
             lcd_mode_init(&mobj->dlcd,CALIB_HX711_LCD);
-            //hx711_calib_init(&mobj->loadcell_global);
+            if(mobj->loadcell_calibration.isCalibrationDone == false){
+                lcd_display(&mobj->dlcd);
+            }
+            else{
+                mobj->dlcd.select = 1;
+                lcd_display(&mobj->dlcd);
+            }
             return EVENT_HANDLED;
         }
         case EXIT:
         {
+            mobj->dlcd.select = 2;
+            lcd_display(&mobj->dlcd);
             return EVENT_HANDLED;
         }
         case CW_SIG:
         {
+            mobj->dlcd.select = 2;
+            lcd_display(&mobj->dlcd);
+            return EVENT_HANDLED;
+        }
+        case CCW_SIG:
+        {
+            mobj->dlcd.select = 2;
+            lcd_display(&mobj->dlcd);
             return EVENT_HANDLED;
         }
         case SETTING_SIG:
         {
-            mobj->active_state = SAVE_LOAD_CELL_CALIBRATION_DATA_SM;
-            return EVENT_TRANSITION; 
+            if(mobj->loadcell_calibration.isCalibrationDone == true){
+               mobj->active_state = SAVE_LOAD_CELL_CALIBRATION_DATA_SM; 
+               return EVENT_TRANSITION; 
+            }
+            else{
+                mobj->dlcd.select = 3;
+                lcd_display(&mobj->dlcd);
+                hx711_calib_init(&mobj->loadcell_calibration);
+                mobj->dlcd.loadcell_calibration = mobj->loadcell_calibration.calibration_data;
+                save_calibration_data_to_global_loadcell(&mobj->loadcell_global,mobj->loadcell_calibration);  
+                return EVENT_HANDLED;
+            }
         }
         case BACK_SIG:
         {
@@ -396,8 +479,25 @@ static event_status_t proobject_state_handle_SAVE_LOAD_CELL_CALIBRATION_DATA_SM(
     switch(e->sig){
         case ENTRY:
         {
+            mobj->loadcell_calibration.isSavingSuccess = false;
             buzzer_notification();
             lcd_mode_init(&mobj->dlcd,SAVE_CALIB_DATA_LCD);
+            lcd_display(&mobj->dlcd);
+            eeprom_write_type_float(WEIGHT_CALIBRATION_ADDR,mobj->loadcell_calibration.calibration_data);
+            delay(100);
+            float saving_data;
+            eeprom_read_type_float(WEIGHT_CALIBRATION_ADDR,&saving_data);
+            mobj->dlcd.saving_data = saving_data;
+            if(compare_floats(saving_data,mobj->loadcell_calibration.calibration_data)){
+                mobj->dlcd.select = 1;
+                mobj->loadcell_calibration.isSavingSuccess = true;
+                lcd_display(&mobj->dlcd);
+            }
+            else{
+                mobj->dlcd.select = 2;
+                mobj->loadcell_calibration.isSavingSuccess = false;
+                lcd_display(&mobj->dlcd);
+            }
             return EVENT_HANDLED;
         }
         case EXIT:
@@ -406,9 +506,25 @@ static event_status_t proobject_state_handle_SAVE_LOAD_CELL_CALIBRATION_DATA_SM(
         }
         case SETTING_SIG:
         {
-            mobj->active_state = CALIB_HX711_SM;
-            return EVENT_TRANSITION;
-        }  
+            if(mobj->loadcell_calibration.isSavingSuccess == false){
+                eeprom_write_type_float(WEIGHT_CALIBRATION_ADDR,mobj->loadcell_calibration.calibration_data);
+                delay(100);
+                float saving_data;
+                eeprom_read_type_float(WEIGHT_CALIBRATION_ADDR,&saving_data); 
+                mobj->dlcd.saving_data = saving_data;
+                if(compare_floats(saving_data,mobj->loadcell_calibration.calibration_data)){
+                    mobj->dlcd.select = 1;
+                    mobj->loadcell_calibration.isSavingSuccess = true;
+                    lcd_display(&mobj->dlcd);
+                }
+                else{
+                    mobj->dlcd.select = 2;
+                    mobj->loadcell_calibration.isSavingSuccess = false;
+                    lcd_display(&mobj->dlcd);
+                }
+            }
+            return EVENT_HANDLED;
+        }
         case BACK_SIG:
         {
             mobj->active_state = MENU_SM;

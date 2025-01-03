@@ -76,6 +76,9 @@ void loop(){
 
   //4. dispatch the time tick event for every  100ms
   if(millis() - current_time  >= TIME_TICK_CYCLE_DEFINE){
+#if ENABLE_TICK_LED == 1
+    digitalWrite(LED_TICK_CALLBACK, !digitalRead(LED_TICK_CALLBACK));
+#endif
     //100ms has passed
     current_time = millis();
     te.super.sig = TIME_TICK_SIG;

@@ -2,6 +2,8 @@
 #include "HX711_ADC.h"
 #include "stdint.h"
 #include "user_define.h"
+#include "lcd.h"
+#include "LiquidCrystal_I2C.h"
 
 //pins:
 const int HX711_dout = HX711_DOUT_DEFINE; //mcu > HX711 dout pin
@@ -62,7 +64,8 @@ float hx711_get_weight(hx711_global_t *hx711_global){
 }
 
 
-int8_t hx711_calib_init(hx711_global_t *hx711_calib){
+float hx711_calib_init(hx711_global_t *hx711_calib){
+    hx711_calib->isCalibrationDone = false;
     CalibLoadCell.begin();
     hx711_calib->calibration_data = 0.0f;
     hx711_calib->_tare = true;
@@ -76,11 +79,10 @@ int8_t hx711_calib_init(hx711_global_t *hx711_calib){
         Serial.println("Startup is complete");
     }
     while (!LoadCell.update());
-    hx711_calibration(hx711_calib); //start calibration procedure
-    return 0;
+    return hx711_calibration(hx711_calib); 
 }
 
-int8_t hx711_calibration(hx711_global_t *hx711_calib){
+float hx711_calibration(hx711_global_t *hx711_calib){
     Serial.println("***");
     Serial.println("Start calibration:");
     Serial.println("Place the load cell an a level stable surface.");
@@ -104,7 +106,7 @@ int8_t hx711_calibration(hx711_global_t *hx711_calib){
     Serial.println("Then send the weight of this mass (i.e. 100.0) from serial monitor.");
 
 
-      float known_mass = 0;
+    float known_mass = 0;
     _resume = false;
     while (_resume == false) {
         LoadCell.update();
@@ -126,5 +128,7 @@ int8_t hx711_calibration(hx711_global_t *hx711_calib){
     Serial.print("New calibration value has been set to: ");
     Serial.print(newCalibrationValue);
     Serial.println(", use this as calibration value (calFactor) in your project sketch.");
-    return 0;
+    hx711_calib->isCalibrationDone = true;
+    display_saving_calibration_data_to_eeprom();
+    return newCalibrationValue;
 }

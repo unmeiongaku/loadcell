@@ -7,6 +7,7 @@
 #include "sprint_serial_data.h"
 #include "mybmp280.h"
 #include "Adafruit_BMP280.h"
+#include "EEPROM.h"
 
 typedef enum{
     NOT_PRESSED,
@@ -82,10 +83,10 @@ typedef struct proobject_tag {
     my_sprint_t globalsprint;
     uint16_t arrow_sprint;
     /*loadcell*/
-    // hx711_global_t loadcell_global;
-    // hx711_global_t loadcell_calibration;
+    hx711_global_t loadcell_global;
+    hx711_global_t loadcell_calibration;
     /*bmp280*/
-    //my_bmp280_t bmp280;
+    my_bmp280_t bmp280;
     /*state*/
     proobject_state_t active_state;
 }proobject_t;

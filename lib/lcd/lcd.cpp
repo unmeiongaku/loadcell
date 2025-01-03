@@ -7,6 +7,8 @@
 #include "sprint_serial_data.h"
 #include "mybmp280.h"
 #include "myhx711.h"
+#include "EEPROM.h"
+#include "myeeprom.h"
 
 static bool IsSprintFirstInit = true;
 static bool IsDisplayFirstInit = true;
@@ -17,7 +19,9 @@ static uint8_t lcd_menu_handle(lcd_t *lcd);
 static uint8_t lcd_sprint_handle(lcd_t *lcd);
 static uint8_t lcd_display_handle(lcd_t *lcd);
 static uint8_t lcd_calib_hx711_handle(lcd_t *lcd);
+static uint8_t lcd_save_calib_data_handle(lcd_t *lcd);
 static uint8_t lcd_set_serial_baudrate_handle(lcd_t *lcd);
+
 
 /*Display data*/
 static void display_data_pos_propeller_callback(lcd_t lcd);
@@ -70,7 +74,7 @@ uint8_t lcd_display(lcd_t *lcd){
         break;
     case SAVE_CALIB_DATA_LCD:
     {
-
+        lcd_save_calib_data_handle(lcd);
     }
         break;
     case SET_SERIAL_BAUDRATE_LCD:
@@ -230,6 +234,7 @@ uint8_t lcd_mode_init(lcd_t *lcd,lcd_mode_t lcd_mode){
             lcd->lcd_mode = lcd_mode;
             lcd->page = 0;
             lcd->arrow = 0;
+            lcd->select = 0;
         }
             break;
         case PUT_STANDARD_MASS_LCD:
@@ -244,6 +249,7 @@ uint8_t lcd_mode_init(lcd_t *lcd,lcd_mode_t lcd_mode){
             lcd->lcd_mode = lcd_mode;
             lcd->page = 0;
             lcd->arrow = 0;
+            lcd->select = 0;
         }
             break;
         case POSSITIVE_PROPELLER_LCD:
@@ -893,7 +899,110 @@ if(lcd->signal == WEIGHT_DATA_DEFINE){
 }
 
 static uint8_t lcd_calib_hx711_handle(lcd_t *lcd){
+    switch(lcd->select){
+        case 0:
+        {
+            lcd_clear();
+            lcdglobal.setCursor(0, 0); 
+            lcdglobal.print("Calibrating Loadcell");
+            lcdglobal.setCursor(0, 1); 
+            lcdglobal.print("Please Open Hercules");
+            lcdglobal.setCursor(0, 2); 
+            lcdglobal.print("Baudrate:");
+            lcdglobal.setCursor(10, 2); 
+            lcdglobal.print(lcd->baudrate);
+            lcdglobal.setCursor(0, 3); 
+            lcdglobal.print("BACK");
+            lcdglobal.setCursor(16, 3); 
+            lcdglobal.print("NEXT");
+        }
+        break;
+        case 1:
+        {
+            lcd_clear();
+            lcdglobal.setCursor(0, 0); 
+            lcdglobal.print("Loadcell Has Been");
+            lcdglobal.setCursor(0, 1); 
+            lcdglobal.print("Calibrated. Wanna");
+            lcdglobal.setCursor(0, 2); 
+            lcdglobal.print("Calibrate Again? ");
+            lcdglobal.setCursor(0, 3); 
+            lcdglobal.print("NO");
+            lcdglobal.setCursor(8, 3); 
+            lcdglobal.print("YES");
+            lcdglobal.setCursor(14, 3); 
+            lcdglobal.print("CW/CCW");
+        }
+        break;
+        case 2:
+        {
+            lcd_clear();
+            lcdglobal.setCursor(0, 0); 
+            lcdglobal.print("Lastest Value Is:");
+            lcdglobal.setCursor(6, 1); 
+            lcdglobal.print(lcd->loadcell_calibration);
+            lcdglobal.setCursor(2, 2); 
+            lcdglobal.print("Calibrate Again ?");
+            lcdglobal.setCursor(0, 3); 
+            lcdglobal.print("No");
+            lcdglobal.setCursor(16, 3); 
+            lcdglobal.print("Yes");
+        }
+        break;
+        case 3:
+        {
+            lcd_clear();
+            lcdglobal.setCursor(0, 0); 
+            lcdglobal.print("Calibrating...");
+            lcdglobal.setCursor(0, 1); 
+            lcdglobal.print("Following step");
+            lcdglobal.setCursor(0, 2); 
+            lcdglobal.print("On the Terminal");
+        }
+        break;
+    }
     return 0;
+}
+
+void display_saving_calibration_data_to_eeprom(){
+        lcdglobal.setCursor(0, 3); 
+        lcdglobal.print("BACK");
+        lcdglobal.setCursor(6, 3); 
+        lcdglobal.print("SAVING EEPROM");
+}
+
+static uint8_t lcd_save_calib_data_handle(lcd_t *lcd){
+    lcd_clear();
+    switch(lcd->select){
+        case 0:
+        {
+            lcdglobal.setCursor(0, 0); 
+            lcdglobal.print("Saving...");
+        }
+            break;
+        case 1:
+        {
+            lcdglobal.setCursor(0, 0); 
+            lcdglobal.print("Data Has Been Saving");
+            lcdglobal.setCursor(6, 1); 
+            lcdglobal.print(lcd->saving_data);
+            lcdglobal.setCursor(0, 3); 
+            lcdglobal.print("BACK");
+        }
+            break;
+        case 2:
+        {
+            lcdglobal.setCursor(0, 0); 
+            lcdglobal.print("Saving Failt");
+            lcdglobal.setCursor(6, 1); 
+            lcdglobal.print(lcd->saving_data);
+            lcdglobal.setCursor(0, 3); 
+            lcdglobal.print("BACK");
+            lcdglobal.setCursor(10, 3); 
+            lcdglobal.print("TRY AGAIN");
+        }
+            break;
+    }
 }
 
 static uint8_t lcd_set_serial_baudrate_handle(lcd_t *lcd){
@@ -1026,3 +1135,4 @@ static void display_data_neg_propeller_callback(lcd_t lcd){
             break;
     }
 }
+

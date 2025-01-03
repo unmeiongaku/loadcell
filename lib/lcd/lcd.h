@@ -60,6 +60,11 @@ typedef struct{
     uint8_t page;
     /*isFirstDisplay*/
     bool isFistdisplay;
+    /*Baudrate*/
+    uint32_t baudrate;
+    /*Calibration Value*/
+    float loadcell_calibration;
+    float saving_data;
 }lcd_t;
 
 
@@ -74,5 +79,8 @@ uint16_t lcd_decrease_select(lcd_t *lcd);
 uint16_t dispatch_internal_signal_sprint_display(lcd_t *lcd);
 
 uint8_t change_enable_or_disable_sprint(lcd_t *lcd,uint16_t arrow);
+
+
+void display_saving_calibration_data_to_eeprom();
 
 #endif

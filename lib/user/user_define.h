@@ -3,14 +3,26 @@
 
 #include "Arduino.h"
 
+#define LED_LOADCELL_SM_NOTIFICATION LED_BUILTIN
+
+
+#define LED_TICK_CALLBACK                   4
+#define LED_RPM_INTERRUPT                   5
+#define LED_SERIAL_PRINT                    6
+
+#define ENABLE_TICK_LED                     0
+
+/*DEINFE RPM INTERRUPT*/
+#define RPM_INTERRUPT_GPIO                  3       
+
 /*define Button*/
-#define BUTTON_SETTING_SIG                    6                                              
-#define BUTTON_BACK_SIG                       7
-#define BUTTON_INCREASE_SIG                   12                                              
-#define BUTTON_DECREASE_SIG                   11
+#define BUTTON_SETTING_SIG                    46                                              
+#define BUTTON_BACK_SIG                       50
+#define BUTTON_INCREASE_SIG                   26                                              
+#define BUTTON_DECREASE_SIG                   30
 
 /*define Buzzer*/   
-#define BUZZER_GPIO                           10        
+#define BUZZER_GPIO                           2        
 
 /*Define Your LCD */
 #define LCD_I2C_SELECT     1
@@ -71,8 +83,8 @@
 #endif
 
 /*hx711 define pins number*/
-#define HX711_DOUT_DEFINE           5
-#define HX711_SCK_DEFINE            4
+#define HX711_DOUT_DEFINE           8
+#define HX711_SCK_DEFINE            7
 
 
 /*LCD_LIST_DEFINE*/
