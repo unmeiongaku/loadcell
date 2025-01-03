@@ -36,7 +36,7 @@ float convert_binary_to_float_32bit(uint8_t buffer[4]){
 			}
 	}
 	else{
-		p = (uint8_t)(buffer[0]>>(22-i)) & 0x01; // chua fixx
+		p = (uint8_t)(buffer[0]>>(22-i)) & 0x01;
 			if(p==1){
 				multi_value = 1;
 			}
@@ -76,10 +76,12 @@ float convert_binary_to_float_32bit(uint8_t buffer[4]){
 
 uint8_t eeprom_write_type_float(uint16_t page_start, float data){
     uint8_t buffer[4];
-    memcpy(buffer, &data, sizeof(float)); // Sao chép dữ liệu float vào buffer
+    memcpy(buffer, &data,4); // Sao chép dữ liệu float vào buffer
     
-    for (uint8_t i = 0; i < sizeof(data); i++) {
+    for (uint8_t i = 0; i < 4; i++) {
         EEPROM.write(page_start + i, buffer[i]); // Sử dụng page_start
+		Serial.println("Write");
+		Serial.println(buffer[i]);
     }
     return 0; // Trả về 0 để biểu thị thành công
 }
@@ -89,10 +91,12 @@ uint8_t eeprom_read_type_float(uint16_t page_start, float *data){
 	 * https://www.youtube.com/watch?v=8cRQT93Olek
 	 * */
 	uint8_t buffer[4];
-	for(uint8_t i =0; i<sizeof(data);i++){
+	for(uint8_t i =0; i<4;i++){
         buffer[i] = EEPROM.read(page_start + i);
+		Serial.println("Read");
+		Serial.println(buffer[i]);
     }
-	*data = convert_binary_to_float_32bit(buffer);
+	memcpy(data, buffer, sizeof(float)); // Chuyển buffer thành float
 	return 0;
 }
 
@@ -100,7 +104,7 @@ uint8_t eeprom_write_type_int(uint16_t page_start, int data){
 	uint8_t buffer[4];
 	memset(buffer,0, sizeof(int));
 	memcpy(buffer,&data,sizeof(int));
-	for(uint8_t i =0; i<sizeof(data);i++){
+	for(uint8_t i =0; i<4;i++){
         EEPROM.write(WEIGHT_CALIBRATION_ADDR + i, buffer[i]);
     }
 	return 0;
@@ -108,7 +112,7 @@ uint8_t eeprom_write_type_int(uint16_t page_start, int data){
 
 uint8_t eeprom_read_type_int(uint16_t page_start, int *data){
 	uint8_t buffer[4];
-	for(uint8_t i =0; i<sizeof(data);i++){
+	for(uint8_t i =0; i<4;i++){
         buffer[i] = EEPROM.read(WEIGHT_CALIBRATION_ADDR + i);
     }
 	*data = (uint32_t)(((((uint32_t)buffer[3]  << 24) | (uint32_t)buffer[2]<<16) | (uint16_t)buffer[1]<<8) | buffer[0]);

@@ -983,7 +983,7 @@ static uint8_t lcd_save_calib_data_handle(lcd_t *lcd){
         case 1:
         {
             lcdglobal.setCursor(0, 0); 
-            lcdglobal.print("Data Has Been Saving");
+            lcdglobal.print("Data Has Been Saved");
             lcdglobal.setCursor(6, 1); 
             lcdglobal.print(lcd->saving_data);
             lcdglobal.setCursor(0, 3); 

@@ -492,6 +492,7 @@ static event_status_t proobject_state_handle_SAVE_LOAD_CELL_CALIBRATION_DATA_SM(
                 mobj->dlcd.select = 1;
                 mobj->loadcell_calibration.isSavingSuccess = true;
                 lcd_display(&mobj->dlcd);
+                save_calibration_data_to_global_loadcell(&mobj->loadcell_global,mobj->loadcell_calibration);  
             }
             else{
                 mobj->dlcd.select = 2;
@@ -516,6 +517,7 @@ static event_status_t proobject_state_handle_SAVE_LOAD_CELL_CALIBRATION_DATA_SM(
                     mobj->dlcd.select = 1;
                     mobj->loadcell_calibration.isSavingSuccess = true;
                     lcd_display(&mobj->dlcd);
+                    save_calibration_data_to_global_loadcell(&mobj->loadcell_global,mobj->loadcell_calibration);  
                 }
                 else{
                     mobj->dlcd.select = 2;
