@@ -184,7 +184,7 @@ public:
   Adafruit_BMP280(int8_t cspin, int8_t mosipin, int8_t misopin, int8_t sckpin);
   ~Adafruit_BMP280(void);
 
-  bool begin(uint8_t addr = BMP280_ADDRESS, uint8_t chipid = BMP280_CHIPID);
+  bool begin(uint8_t addr = BMP280_ADDRESS_ALT, uint8_t chipid = BMP280_CHIPID);
   void reset(void);
   uint8_t getStatus(void);
   uint8_t sensorID(void);

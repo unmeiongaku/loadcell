@@ -3,6 +3,9 @@
 
 #include "Arduino.h"
 
+#define ARDUINO_DEBUG 1
+
+
 #define LED_LOADCELL_SM_NOTIFICATION LED_BUILTIN
 
 

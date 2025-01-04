@@ -24,10 +24,12 @@ static event_status_t proobject_state_handle_STOP_SM(proobject_t *const mobj, ev
 static void dispatch_signals(event_t const * const e);
 static void sprint_signal(proobject_t *const mobj, event_t const * const e);
 
+static void save_data_to_sprint_terminal(proobject_t *const mobj);
+static void save_data_to_sprint_terminal(proobject_t *const mobj);
+static void save_data_to_display_lcd(proobject_t *const mobj);
+static void save_status_sprint_from_lcd_to_serial(proobject_t *const mobj);
 
 static uint16_t internal_signal;
-
-static uint32_t counter_propeller;
 
 uint16_t get_internal_signal(){
     return internal_signal;
@@ -56,6 +58,7 @@ void led_notification(){
 static uint8_t get_datas(proobject_t *const mobj);
 static void save_data_to_display_lcd(proobject_t *const mobj);
 static void save_data_to_sprint_terminal(proobject_t *const mobj);
+static void save_status_sprint_from_serial_to_lcd(proobject_t *const mobj);
 
 static uint8_t get_datas(proobject_t *const mobj){
     //mobj->globaldata.weight = hx711_get_weight(&mobj->loadcell_global);
@@ -84,55 +87,57 @@ static void save_data_to_sprint_terminal(proobject_t *const mobj){
     mobj->globalsprint.sprint.voltage = mobj->globaldata.voltage;
 }
 
+static void save_status_sprint_from_lcd_to_serial(proobject_t *const mobj){
+    mobj->globalsprint.sprint_enable.getweight = mobj->dlcd.sprintdata.getweight;
+    mobj->globalsprint.sprint_enable.getrpm = mobj->dlcd.sprintdata.getrpm;
+    mobj->globalsprint.sprint_enable.getrads = mobj->dlcd.sprintdata.getrads;
+    mobj->globalsprint.sprint_enable.getcurrent = mobj->dlcd.sprintdata.getcurrent;
+    mobj->globalsprint.sprint_enable.getvoltage = mobj->dlcd.sprintdata.getvoltage;
+    mobj->globalsprint.sprint_enable.gettemp = mobj->dlcd.sprintdata.gettemp;
+    mobj->globalsprint.sprint_enable.gettemp_of_motors = mobj->dlcd.sprintdata.gettemp_of_motors;
+    mobj->globalsprint.sprint_enable.getpressure = mobj->dlcd.sprintdata.getpressure;
+}
+
+static void save_status_sprint_from_serial_to_lcd(proobject_t *const mobj){
+    mobj->dlcd.sprintdata.getweight = mobj->globalsprint.sprint_enable.getweight;
+    mobj->dlcd.sprintdata.getrpm = mobj->globalsprint.sprint_enable.getrpm;
+    mobj->dlcd.sprintdata.getrads = mobj->globalsprint.sprint_enable.getrads;
+    mobj->dlcd.sprintdata.getcurrent = mobj->globalsprint.sprint_enable.getcurrent;
+    mobj->dlcd.sprintdata.getvoltage = mobj->globalsprint.sprint_enable.getvoltage;
+    mobj->dlcd.sprintdata.gettemp = mobj->globalsprint.sprint_enable.gettemp;
+    mobj->dlcd.sprintdata.gettemp_of_motors = mobj->globalsprint.sprint_enable.gettemp_of_motors;
+    mobj->dlcd.sprintdata.getpressure = mobj->globalsprint.sprint_enable.getpressure;
+}
+
 static uint32_t rpmtimer = millis();
+static motor_counter_t motors;
 
-void toggleLED() {
-  counter_propeller++;
-  digitalWrite(LED_RPM_INTERRUPT, !digitalRead(LED_RPM_INTERRUPT));
+void roundcounter() {
+  motors.totalcnt++;
+  //digitalWrite(LED_RPM_INTERRUPT, !digitalRead(LED_RPM_INTERRUPT));
+  Serial.println(motors.totalcnt);
 }
 
+uint8_t get_motor_rpm_rads(float *rpm, float *rads);
 
-static uint8_t process_rpm_value(uint8_t btn_pad_value){
-  static button_state_t btn_sm_state = NOT_PRESSED;
-  static uint32_t curr_time = millis();
-
-  switch(btn_sm_state){
-    case NOT_PRESSED:
-    {
-      if(btn_pad_value){
-        btn_sm_state = BOUNCE;
-        curr_time = millis();
-      }
-    break;
-    }
-    case BOUNCE:{
-    if(millis() - curr_time >= 40 ){
-      //50ms has passed 
-    if(btn_pad_value){
-        btn_sm_state = PRESSED;
-        return btn_pad_value;
-    }
-    else
-          btn_sm_state = NOT_PRESSED;
-    }
-      break;
-    case PRESSED:{
-      if(!btn_pad_value){
-        btn_sm_state = BOUNCE;
-        curr_time = millis();
-      }
-      break;
-    }
-    }
-  }
-  return 0;
+uint8_t get_motor_rpm_rads(float *rpm, float *rads){
+    uint32_t magpertick;
+    magpertick = motors.totalcnt - motors.lastcounter;
+    float rollpertick;
+    rollpertick = (float)magpertick/(float)7.0;
+    *rpm = rollpertick*600.0;
+    *rads =  *rpm * (2 * M_PI / 60);
+    return 0;
 }
+
 
 void proobject_init(proobject_t *const mobj){
+    /*Serial Print Init*/
+    serial_sprint_data_init(&mobj->globalsprint);
     /*Interrup RPM*/
     pinMode(RPM_INTERRUPT_GPIO,INPUT_PULLUP);
     pinMode(LED_RPM_INTERRUPT,OUTPUT);
-    attachInterrupt(digitalPinToInterrupt(RPM_INTERRUPT_GPIO), toggleLED, FALLING);
+    attachInterrupt(digitalPinToInterrupt(RPM_INTERRUPT_GPIO), roundcounter, FALLING);
     /*Button Init*/
     pinMode(BUTTON_SETTING_SIG,INPUT);
     pinMode(BUTTON_BACK_SIG,INPUT);
@@ -144,14 +149,17 @@ void proobject_init(proobject_t *const mobj){
     pinMode(LED_LOADCELL_SM_NOTIFICATION,OUTPUT);
     pinMode(LED_TICK_CALLBACK,OUTPUT);
     /*Sensor init*/
-    //my_bmp280_init(&mobj->bmp280);
+    my_bmp280_init(&mobj->bmp280);
     /*Lcd Init*/
     lcd_init();
     /*Init Loadcel*/
     mobj->loadcell_calibration.isCalibrationDone = false;
-    /*Serial Print Init*/
-    serial_sprint_data_init(&mobj->globalsprint);
     mobj->dlcd.baudrate = mobj->globalsprint.baudrate;
+    /*Init last init systerm*/
+    /*EEPROM -> DISPLAY LCD AND SERIAL*/
+    load_eeprom_systerm(&mobj->globalsprint.sprint_enable,&mobj->dlcd.displaydata);
+    /*SERIAL -> DISPLAY LCD SERIAL*/
+    save_status_sprint_from_serial_to_lcd(mobj);
     event_t ee; 
     ee.sig = ENTRY;
     mobj->active_state = MENU_SM;
@@ -297,6 +305,7 @@ static event_status_t proobject_state_handle_SPINT_DATA_SM(proobject_t *const mo
         }
         case EXIT:
         {
+            save_eeprom_systerm(&mobj->globalsprint.sprint_enable,&mobj->dlcd.displaydata);
             return EVENT_HANDLED;
         }
         case CW_SIG:
@@ -327,6 +336,7 @@ static event_status_t proobject_state_handle_SPINT_DATA_SM(proobject_t *const mo
         {
             buzzer_notification();
             change_enable_or_disable_sprint(&mobj->dlcd,mobj->arrow_sprint);
+            save_status_sprint_from_lcd_to_serial(mobj);
             return EVENT_HANDLED;
         }
     }
@@ -345,6 +355,7 @@ static event_status_t proobject_state_handle_DISPLAY_DATA_SM(proobject_t *const 
         }
         case EXIT:
         {
+            save_eeprom_systerm(&mobj->globalsprint.sprint_enable,&mobj->dlcd.displaydata);
             return EVENT_HANDLED;
         }
         case CW_SIG:
@@ -370,6 +381,7 @@ static event_status_t proobject_state_handle_DISPLAY_DATA_SM(proobject_t *const 
         {
             buzzer_notification();
             change_enable_or_disable_sprint(&mobj->dlcd,mobj->arrow_display);
+            save_status_sprint_from_lcd_to_serial(mobj);
             return EVENT_HANDLED;
         }
         case BACK_SIG:

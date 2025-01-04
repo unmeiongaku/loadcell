@@ -195,17 +195,17 @@ uint8_t lcd_mode_init(lcd_t *lcd,lcd_mode_t lcd_mode){
             lcd->select = 0;
             lcd->page = 0;
             lcd->arrow = 0;
-            if(IsSprintFirstInit == true){
-                lcd->sprintdata.getcurrent = true;
-                lcd->sprintdata.getweight = true;
-                lcd->sprintdata.getrpm = true;
-                lcd->sprintdata.getrads = true;
-                lcd->sprintdata.getvoltage = true;
-                lcd->sprintdata.gettemp = true;
-                lcd->sprintdata.gettemp_of_motors = false;
-                lcd->sprintdata.getpressure = true; 
-                IsSprintFirstInit = false;
-            }
+            // if(IsSprintFirstInit == true){
+            //     lcd->sprintdata.getcurrent = true;
+            //     lcd->sprintdata.getweight = true;
+            //     lcd->sprintdata.getrpm = true;
+            //     lcd->sprintdata.getrads = true;
+            //     lcd->sprintdata.getvoltage = true;
+            //     lcd->sprintdata.gettemp = true;
+            //     lcd->sprintdata.gettemp_of_motors = false;
+            //     lcd->sprintdata.getpressure = true; 
+            //     IsSprintFirstInit = false;
+            // }
 
         }
             break;
@@ -216,17 +216,18 @@ uint8_t lcd_mode_init(lcd_t *lcd,lcd_mode_t lcd_mode){
             lcd->select = 0;
             lcd->page = 0;
             lcd->arrow = 0;
-            if(IsDisplayFirstInit == true){
-                lcd->displaydata.getcurrent = true;
-                lcd->displaydata.getweight = true;
-                lcd->displaydata.getrpm = true;
-                lcd->displaydata.getrads = true;
-                lcd->displaydata.getvoltage = true;
-                lcd->displaydata.gettemp = true;
-                lcd->displaydata.gettemp_of_motors = false;
-                lcd->displaydata.getpressure = true; 
-                IsDisplayFirstInit = false;
-            }
+            // if(IsDisplayFirstInit == true){
+            //     lcd->displaydata.getcurrent = true;
+            //     lcd->displaydata.getweight = true;
+            //     lcd->displaydata.getrpm = true;
+            //     lcd->displaydata.getrads = true;
+            //     lcd->displaydata.getvoltage = true;
+            //     lcd->displaydata.gettemp = true;
+            //     lcd->displaydata.gettemp_of_motors = false;
+            //     lcd->displaydata.getpressure = true; 
+            //     IsDisplayFirstInit = false;
+            // }
+            
         }
             break;
         case CALIB_HX711_LCD:
@@ -676,6 +677,8 @@ static uint8_t lcd_sprint_handle(lcd_t *lcd){
         lcdglobal.setCursor(0, 3);
         lcdglobal.print("CUR");  // select = 3
 
+
+
         /*ENABLE - DISABLE*/
         if(lcd->sprintdata.getweight == true){
             lcdglobal.setCursor(DATA_ENA_DISABLE_ROW, 0); 
@@ -921,7 +924,7 @@ static uint8_t lcd_calib_hx711_handle(lcd_t *lcd){
         {
             lcd_clear();
             lcdglobal.setCursor(0, 0); 
-            lcdglobal.print("Loadcell Has Been");
+            lcdglobal.print("Loadcell Had Been");
             lcdglobal.setCursor(0, 1); 
             lcdglobal.print("Calibrated. Wanna");
             lcdglobal.setCursor(0, 2); 
@@ -983,7 +986,7 @@ static uint8_t lcd_save_calib_data_handle(lcd_t *lcd){
         case 1:
         {
             lcdglobal.setCursor(0, 0); 
-            lcdglobal.print("Data Has Been Saved");
+            lcdglobal.print("Data Had Been Saved");
             lcdglobal.setCursor(6, 1); 
             lcdglobal.print(lcd->saving_data);
             lcdglobal.setCursor(0, 3); 

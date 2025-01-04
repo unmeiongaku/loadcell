@@ -9,6 +9,13 @@
 #include "Adafruit_BMP280.h"
 #include "EEPROM.h"
 
+
+typedef struct{
+    uint32_t totalcnt;
+    uint32_t currentcnt;
+    uint32_t lastcounter;
+}motor_counter_t;
+
 typedef enum{
     NOT_PRESSED,
     BOUNCE,
