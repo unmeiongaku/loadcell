@@ -17,7 +17,7 @@ static HX711_ADC CalibLoadCell(HX711_dout,HX711_sck);
 
 int8_t hx711_init(hx711_global_t *hx711_global){
     LoadCell.begin();
-    hx711_global->calibration_data = 0.0f;
+    //hx711_global->calibration_data = 0.0f;
     hx711_global->newDataReady = 0;
     hx711_global->stabilizingtime = 2000;
     hx711_global->_tare = true;

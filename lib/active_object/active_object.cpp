@@ -14,7 +14,7 @@ static event_status_t proobject_state_handle_MENU_SM(proobject_t *const mobj, ev
 static event_status_t proobject_state_handle_SPINT_DATA_SM(proobject_t *const mobj, event_t const *const e);
 static event_status_t proobject_state_handle_DISPLAY_DATA_SM(proobject_t *const mobj, event_t const *const e);
 static event_status_t proobject_state_handle_CALIB_HX711_SM(proobject_t *const mobj, event_t const *const e);
-static event_status_t proobject_state_handle_PUT_STANDARD_MASS_SM(proobject_t *const mobj, event_t const *const e);
+static event_status_t proobject_state_handle_SEARCHING_CALIBRATION_LOADCELL_SM(proobject_t *const mobj, event_t const *const e);
 static event_status_t proobject_state_handle_SAVE_LOAD_CELL_CALIBRATION_DATA_SM(proobject_t *const mobj, event_t const *const e);
 static event_status_t proobject_state_handle_POSSITIVE_PROPELLER_SM(proobject_t *const mobj, event_t const *const e);
 static event_status_t proobject_state_handle_NEGATIVE_PROPELLER_SM(proobject_t *const mobj, event_t const *const e);
@@ -115,7 +115,7 @@ static motor_counter_t motors;
 void roundcounter() {
   motors.totalcnt++;
   //digitalWrite(LED_RPM_INTERRUPT, !digitalRead(LED_RPM_INTERRUPT));
-  Serial.println(motors.totalcnt);
+  //Serial.println(motors.totalcnt);
 }
 
 uint8_t get_motor_rpm_rads(float *rpm, float *rads);
@@ -127,6 +127,7 @@ uint8_t get_motor_rpm_rads(float *rpm, float *rads){
     rollpertick = (float)magpertick/(float)7.0;
     *rpm = rollpertick*600.0;
     *rads =  *rpm * (2 * M_PI / 60);
+    motors.lastcounter = motors.totalcnt;
     return 0;
 }
 
@@ -155,7 +156,7 @@ void proobject_init(proobject_t *const mobj){
     /*Init Loadcel*/
     mobj->loadcell_calibration.isCalibrationDone = false;
     mobj->dlcd.baudrate = mobj->globalsprint.baudrate;
-    /*Init last init systerm*/
+    mobj->isLoadCellGlobalInitDone = false;
     /*EEPROM -> DISPLAY LCD AND SERIAL*/
     load_eeprom_systerm(&mobj->globalsprint.sprint_enable,&mobj->dlcd.displaydata);
     /*SERIAL -> DISPLAY LCD SERIAL*/
@@ -189,9 +190,9 @@ event_status_t proobject_state_machine(proobject_t *const mobj, event_t const * 
             return proobject_state_handle_CALIB_HX711_SM(mobj,e);
         }
             break;
-        case PUT_STANDARD_MASS_SM:
+        case SEARCHING_CALIBRATION_LOADCELL_SM:
         {
-            return proobject_state_handle_PUT_STANDARD_MASS_SM(mobj,e);
+            return proobject_state_handle_SEARCHING_CALIBRATION_LOADCELL_SM(mobj,e);
         }
             break;
         case SAVE_LOAD_CELL_CALIBRATION_DATA_SM:
@@ -410,17 +411,14 @@ static event_status_t proobject_state_handle_CALIB_HX711_SM(proobject_t *const m
         }
         case EXIT:
         {
-            mobj->dlcd.select = 2;
-            lcd_display(&mobj->dlcd);
-            return EVENT_HANDLED;
-        }
-        case CW_SIG:
-        {
-            mobj->dlcd.select = 2;
-            lcd_display(&mobj->dlcd);
             return EVENT_HANDLED;
         }
         case CCW_SIG:
+        {
+            mobj->active_state = SEARCHING_CALIBRATION_LOADCELL_SM;
+            return EVENT_TRANSITION;
+        }
+        case CW_SIG:
         {
             mobj->dlcd.select = 2;
             lcd_display(&mobj->dlcd);
@@ -438,6 +436,7 @@ static event_status_t proobject_state_handle_CALIB_HX711_SM(proobject_t *const m
                 hx711_calib_init(&mobj->loadcell_calibration);
                 mobj->dlcd.loadcell_calibration = mobj->loadcell_calibration.calibration_data;
                 save_calibration_data_to_global_loadcell(&mobj->loadcell_global,mobj->loadcell_calibration);  
+                mobj->isLoadCellGlobalInitDone = false;
                 return EVENT_HANDLED;
             }
         }
@@ -450,27 +449,33 @@ static event_status_t proobject_state_handle_CALIB_HX711_SM(proobject_t *const m
     return EVENT_IGNORED;
 }
 
-static event_status_t proobject_state_handle_PUT_STANDARD_MASS_SM(proobject_t *const mobj, event_t const *const e){
+static event_status_t proobject_state_handle_SEARCHING_CALIBRATION_LOADCELL_SM(proobject_t *const mobj, event_t const *const e){
        switch(e->sig){
         case ENTRY:
         {
             buzzer_notification();
-            lcd_mode_init(&mobj->dlcd,PUT_STANDARD_MASS_LCD);
+            lcd_mode_init(&mobj->dlcd,SEARCHING_CALIBRATION_LOADCELL_LCD);
+            lcd_display(&mobj->dlcd);
+            delay(500);
+            float saving_data;
+            eeprom_read_type_float(WEIGHT_CALIBRATION_ADDR,&saving_data);
+            if(saving_data!=0){
+                mobj->dlcd.loadcell_calibration = saving_data;
+                mobj->loadcell_calibration.calibration_data = saving_data;
+                mobj->dlcd.select = 2;
+                save_calibration_data_to_global_loadcell(&mobj->loadcell_global,mobj->loadcell_calibration);
+                mobj->loadcell_calibration.isCalibrationDone == true;
+                lcd_display(&mobj->dlcd);
+            }
+            else{
+                mobj->dlcd.select = 1;
+                lcd_display(&mobj->dlcd);
+            }
             return EVENT_HANDLED;
         }
         case EXIT:
         {
             return EVENT_HANDLED;
-        }
-        case CCW_SIG:
-        {
-            mobj->active_state = SAVE_LOAD_CELL_CALIBRATION_DATA_SM;
-            return EVENT_TRANSITION; 
-        }
-        case CW_SIG:
-        {
-            mobj->active_state = SAVE_LOAD_CELL_CALIBRATION_DATA_SM;
-            return EVENT_TRANSITION; 
         }
         case SETTING_SIG:
         {
@@ -515,6 +520,7 @@ static event_status_t proobject_state_handle_SAVE_LOAD_CELL_CALIBRATION_DATA_SM(
         }
         case EXIT:
         {
+            mobj->isLoadCellGlobalInitDone = false;
             return EVENT_HANDLED;
         }
         case SETTING_SIG:
@@ -553,15 +559,53 @@ static event_status_t proobject_state_handle_POSSITIVE_PROPELLER_SM(proobject_t 
         case ENTRY:
         {
             buzzer_notification();
+            /*LCD INIT*/
             lcd_mode_init(&mobj->dlcd,POSSITIVE_PROPELLER_LCD);
+            lcd_display(&mobj->dlcd);
+            /*LOADCELL Global Init*/
+            eeprom_read_type_float(WEIGHT_CALIBRATION_ADDR,&mobj->loadcell_global.calibration_data);
+            if(mobj->isLoadCellGlobalInitDone == false){
+                hx711_init(&mobj->loadcell_global);
+                mobj->isLoadCellGlobalInitDone = true;
+            }
             return EVENT_HANDLED;
         }
         case EXIT:
         {
             return EVENT_HANDLED;
         }
+        case CCW_SIG:
+        {
+            led_notification();
+            buzzer_notification();
+            lcd_decrease_select(&mobj->dlcd);
+            // mobj->arrow_display = dispatch_internal_signal_sprint_display(&mobj->dlcd);
+            /*Display_lcd*/
+            lcd_display(&mobj->dlcd);
+            return EVENT_HANDLED;
+        }
+        case CW_SIG:
+        {
+            led_notification();
+            buzzer_notification();
+            lcd_increase_select(&mobj->dlcd);
+            mobj->arrow_display = dispatch_internal_signal_sprint_display(&mobj->dlcd);
+            /*Display_lcd*/
+            lcd_display(&mobj->dlcd);
+            return EVENT_HANDLED;
+        }
         case TIME_TICK_SIG:
         {
+            display_data(mobj->dlcd);
+            float weight = hx711_get_weight(&mobj->loadcell_global);
+            float rpm,rads;
+            get_motor_rpm_rads(&rpm,&rads);
+            Serial.print("&");
+            Serial.print(weight);
+            Serial.print(";");
+            Serial.print(rpm);
+            Serial.print(";");
+            Serial.println(rads);
             return EVENT_HANDLED; 
         }
         case BACK_SIG:
@@ -707,9 +751,9 @@ static void sprint_signal(proobject_t *const mobj, event_t const * const e){
                 serial_sprintln_char("CALIB_HX711_SM\n");
                 serial_sprint_char("CALIB_HX711_");
             break;
-            case PUT_STANDARD_MASS_SM:
-                serial_sprintln_char("PUT_STANDARD_MASS_SM\n");
-                serial_sprint_char("SET_STANDARD_MASS_");
+            case SEARCHING_CALIBRATION_LOADCELL_SM:
+                serial_sprintln_char("SEARCHING_CALIBRATION_LOADCELL_SM\n");
+                serial_sprint_char("SEARCHING_CALIBRATION_LOADCELL_");
             break;
             case SAVE_LOAD_CELL_CALIBRATION_DATA_SM:
                 serial_sprintln_char("SAVE_LOAD_CELL_CALIBRATION_DATA_SM\n");

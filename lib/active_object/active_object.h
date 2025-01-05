@@ -54,7 +54,7 @@ typedef enum{
     SPRINT_DATA_SM,
     DISPLAY_DATA_SM,
     CALIB_HX711_SM,
-    PUT_STANDARD_MASS_SM,
+    SEARCHING_CALIBRATION_LOADCELL_SM,
     SAVE_LOAD_CELL_CALIBRATION_DATA_SM,
     POSITIVE_PROPELLER_SM,
     NEGATIVE_PROPELLER_SM,
@@ -92,6 +92,7 @@ typedef struct proobject_tag {
     /*loadcell*/
     hx711_global_t loadcell_global;
     hx711_global_t loadcell_calibration;
+    bool isLoadCellGlobalInitDone;
     /*bmp280*/
     my_bmp280_t bmp280;
     /*state*/

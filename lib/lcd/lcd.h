@@ -34,7 +34,7 @@ typedef enum{
     SPRINT_DATA_LCD,
     DISPLAY_DATA_LCD,
     CALIB_HX711_LCD,
-    PUT_STANDARD_MASS_LCD,
+    SEARCHING_CALIBRATION_LOADCELL_LCD,
     SAVE_CALIB_DATA_LCD,
     POSSITIVE_PROPELLER_LCD,
     NEGATIVE_PROPELLER_LCD,
@@ -80,6 +80,7 @@ uint16_t dispatch_internal_signal_sprint_display(lcd_t *lcd);
 
 uint8_t change_enable_or_disable_sprint(lcd_t *lcd,uint16_t arrow);
 
+void display_data(lcd_t lcd);
 
 void display_saving_calibration_data_to_eeprom();
 

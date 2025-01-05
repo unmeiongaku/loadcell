@@ -19,6 +19,8 @@ static uint8_t lcd_menu_handle(lcd_t *lcd);
 static uint8_t lcd_sprint_handle(lcd_t *lcd);
 static uint8_t lcd_display_handle(lcd_t *lcd);
 static uint8_t lcd_calib_hx711_handle(lcd_t *lcd);
+static uint8_t lcd_searching_calibration_loadcell_handle(lcd_t *lcd);
+static uint8_t lcd_possitive_propller_handle(lcd_t *lcd);
 static uint8_t lcd_save_calib_data_handle(lcd_t *lcd);
 static uint8_t lcd_set_serial_baudrate_handle(lcd_t *lcd);
 
@@ -67,9 +69,9 @@ uint8_t lcd_display(lcd_t *lcd){
         lcd_calib_hx711_handle(lcd);
     }
         break;
-    case PUT_STANDARD_MASS_LCD:
+    case SEARCHING_CALIBRATION_LOADCELL_LCD:
     {
-
+        lcd_searching_calibration_loadcell_handle(lcd);
     }
         break;
     case SAVE_CALIB_DATA_LCD:
@@ -82,12 +84,16 @@ uint8_t lcd_display(lcd_t *lcd){
         lcd_set_serial_baudrate_handle(lcd);
     }
         break;
-    // case POSSITIVE_PROPELLER_LCD:
-    //     break;
-    // case NEGATIVE_PROPELLER_LCD:
-    //     break;
-    // case STOP_LCD:
-    //     break;
+    case POSSITIVE_PROPELLER_LCD:
+    {
+        lcd_possitive_propller_handle(lcd);
+    }
+        break;
+    case NEGATIVE_PROPELLER_LCD:
+    {
+        
+    }
+        break;
     default:
         break;
     }  
@@ -146,6 +152,24 @@ uint16_t dispatch_internal_signal_sprint_display(lcd_t *lcd){
         }
         lcd->signal = signal;
     }
+    else if(lcd->lcd_mode ==POSSITIVE_PROPELLER_LCD){
+        if(lcd->select == 0){
+            signal = POSSITIVE_PROPLLER_LIST_1;
+        }
+        else if(lcd->select == 1){
+            signal = POSSITIVE_PROPLLER_LIST_2;
+        }
+        lcd->signal = signal;
+    }
+    else if(lcd->lcd_mode == NEGATIVE_PROPELLER_LCD){
+        if(lcd->select == 0){
+            signal = POSSITIVE_PROPLLER_LIST_1;
+        }
+        else if(lcd->select == 1){
+            signal = POSSITIVE_PROPLLER_LIST_2;
+        }
+        lcd->signal = signal;
+    }
     else{
         signal = 0;
     }
@@ -195,18 +219,6 @@ uint8_t lcd_mode_init(lcd_t *lcd,lcd_mode_t lcd_mode){
             lcd->select = 0;
             lcd->page = 0;
             lcd->arrow = 0;
-            // if(IsSprintFirstInit == true){
-            //     lcd->sprintdata.getcurrent = true;
-            //     lcd->sprintdata.getweight = true;
-            //     lcd->sprintdata.getrpm = true;
-            //     lcd->sprintdata.getrads = true;
-            //     lcd->sprintdata.getvoltage = true;
-            //     lcd->sprintdata.gettemp = true;
-            //     lcd->sprintdata.gettemp_of_motors = false;
-            //     lcd->sprintdata.getpressure = true; 
-            //     IsSprintFirstInit = false;
-            // }
-
         }
             break;
         case DISPLAY_DATA_LCD:
@@ -216,18 +228,6 @@ uint8_t lcd_mode_init(lcd_t *lcd,lcd_mode_t lcd_mode){
             lcd->select = 0;
             lcd->page = 0;
             lcd->arrow = 0;
-            // if(IsDisplayFirstInit == true){
-            //     lcd->displaydata.getcurrent = true;
-            //     lcd->displaydata.getweight = true;
-            //     lcd->displaydata.getrpm = true;
-            //     lcd->displaydata.getrads = true;
-            //     lcd->displaydata.getvoltage = true;
-            //     lcd->displaydata.gettemp = true;
-            //     lcd->displaydata.gettemp_of_motors = false;
-            //     lcd->displaydata.getpressure = true; 
-            //     IsDisplayFirstInit = false;
-            // }
-            
         }
             break;
         case CALIB_HX711_LCD:
@@ -238,11 +238,12 @@ uint8_t lcd_mode_init(lcd_t *lcd,lcd_mode_t lcd_mode){
             lcd->select = 0;
         }
             break;
-        case PUT_STANDARD_MASS_LCD:
+        case SEARCHING_CALIBRATION_LOADCELL_LCD:
         {
             lcd->lcd_mode = lcd_mode;
             lcd->page = 0;
             lcd->arrow = 0;
+            lcd->select = 0;
         }
             break;
         case SAVE_CALIB_DATA_LCD:
@@ -258,6 +259,8 @@ uint8_t lcd_mode_init(lcd_t *lcd,lcd_mode_t lcd_mode){
             lcd->lcd_mode = lcd_mode;
             lcd->page = 0;
             lcd->arrow = 0;
+            lcd->select = 0;
+            lcd->maxselect = LCD_POSITIVE_PROPELLER_LIST_DEFINE-1;
         }
             break;
         case NEGATIVE_PROPELLER_LCD:
@@ -265,6 +268,8 @@ uint8_t lcd_mode_init(lcd_t *lcd,lcd_mode_t lcd_mode){
             lcd->lcd_mode = lcd_mode;
             lcd->page = 0;
             lcd->arrow = 0;
+            lcd->select = 0;
+            lcd->maxselect = LCD_POSITIVE_PROPELLER_LIST_DEFINE-1;
         }
             break;
         case SET_SERIAL_BAUDRATE_LCD:
@@ -289,25 +294,6 @@ uint8_t lcd_mode_init(lcd_t *lcd,lcd_mode_t lcd_mode){
     return 0;
 }
 
-
-void display_data_list_init(lcd_t *lcd,lcd_mode_t lcd_mode){
-    switch(lcd_mode){
-        case POSSITIVE_PROPELLER_LCD:
-        {
-            lcd->data_list_maxselect = LCD_DISPLAY_DATA_POS_PROPELLER_LIST;
-            lcd->data_list_select = 0;
-        }
-        break;
-        case NEGATIVE_PROPELLER_LCD:
-        {
-            lcd->data_list_maxselect = LCD_DISPLAY_DATA_NEG_PROPELLER_LIST;
-            lcd->data_list_select = 0;
-        }
-        break;
-        default:
-            break;
-    }
-}
 
 void display_data(lcd_t lcd){
     switch(lcd.lcd_mode){
@@ -769,7 +755,7 @@ static uint8_t lcd_sprint_handle(lcd_t *lcd){
 }
 
 static uint8_t lcd_display_handle(lcd_t *lcd){
-if(lcd->signal == WEIGHT_DATA_DEFINE){
+    if(lcd->signal == WEIGHT_DATA_DEFINE){
         lcd->arrow = 0;
         lcd->page = 0;
     }
@@ -916,8 +902,10 @@ static uint8_t lcd_calib_hx711_handle(lcd_t *lcd){
             lcdglobal.print(lcd->baudrate);
             lcdglobal.setCursor(0, 3); 
             lcdglobal.print("BACK");
-            lcdglobal.setCursor(16, 3); 
+            lcdglobal.setCursor(6, 3); 
             lcdglobal.print("NEXT");
+            lcdglobal.setCursor(11, 3); 
+            lcdglobal.print("SRCH/CHCK");
         }
         break;
         case 1:
@@ -974,6 +962,46 @@ void display_saving_calibration_data_to_eeprom(){
         lcdglobal.print("SAVING EEPROM");
 }
 
+static uint8_t lcd_searching_calibration_loadcell_handle(lcd_t *lcd){
+    lcd_clear();
+    switch(lcd->select){
+        case 0:
+        {
+            lcdglobal.setCursor(0, 0); 
+            lcdglobal.print("SEARCHING..."); 
+        }
+            break;
+        case 1:
+        {
+            lcdglobal.setCursor(0, 0); 
+            lcdglobal.print("Can't Found A"); 
+            lcdglobal.setCursor(0, 1); 
+            lcdglobal.print("Valid Data, Please"); 
+            lcdglobal.setCursor(0, 2); 
+            lcdglobal.print("Calibration Again"); 
+            lcdglobal.setCursor(0, 3); 
+            lcdglobal.print("Menu"); 
+            lcdglobal.setCursor(10, 3); 
+            lcdglobal.print("Calibrate"); 
+        }
+            break;
+        case 2:
+        {
+            lcdglobal.setCursor(0, 0); 
+            lcdglobal.print("Lastest Value Is:");
+            lcdglobal.setCursor(6, 1); 
+            lcdglobal.print(lcd->loadcell_calibration);
+            lcdglobal.setCursor(2, 2); 
+            lcdglobal.print("Calibrate Again ?");
+            lcdglobal.setCursor(0, 3); 
+            lcdglobal.print("No");
+            lcdglobal.setCursor(16, 3); 
+            lcdglobal.print("Yes");
+        }
+            break;
+    }
+}
+
 static uint8_t lcd_save_calib_data_handle(lcd_t *lcd){
     lcd_clear();
     switch(lcd->select){
@@ -1008,71 +1036,49 @@ static uint8_t lcd_save_calib_data_handle(lcd_t *lcd){
     }
 }
 
+
+static uint8_t lcd_possitive_propller_handle(lcd_t *lcd){
+    if(lcd->signal == POSSITIVE_PROPLLER_LIST_1){
+        lcd->page = 0;
+    }
+    else if(lcd->signal == POSSITIVE_PROPLLER_LIST_2){
+        lcd->page = 1;
+    }
+    if(lcd->page == 0){
+        lcd_clear();
+        lcdglobal.setCursor(0, 0);
+        lcdglobal.print("WEIGHT:");      // select = 0
+        lcdglobal.setCursor(0, 1);
+        lcdglobal.print("ROLL/MIN:");   // select = 1
+        lcdglobal.setCursor(0, 2);
+        lcdglobal.print("RAD/SEC:"); // select = 2
+        lcdglobal.setCursor(0, 3);
+        lcdglobal.print("CURRENT:");  // select = 3
+    }
+    else if(lcd->page == 1){
+        lcd_clear();
+        lcdglobal.setCursor(0, 0);
+        lcdglobal.print("VOLTAGE:");         // select = 4
+        lcdglobal.setCursor(0, 1);
+        lcdglobal.print("TEMPERATURE:");        // select = 5
+        lcdglobal.setCursor(0, 2);
+        lcdglobal.print("mTEMPERATURE:");       // select = 2
+        lcdglobal.setCursor(0, 3);
+        lcdglobal.print("PRESSURE:");        // select = 3
+    }
+}
+
 static uint8_t lcd_set_serial_baudrate_handle(lcd_t *lcd){
     return 0;
 }
 
 
 static void display_data_pos_propeller_callback(lcd_t lcd){
-    switch(lcd.data_list_select){
-        case 0:
-        {  
-            if(lcd.displaydata.getrads == true){
+    if(lcd.page == 0){
 
-            }
-            else{
-                
-            }
-            if(lcd.displaydata.getrpm == true){
-
-            }
-            else{
-                
-            }
-            if(lcd.displaydata.getvoltage == true){
-
-            }
-            else{
-                
-            }
-            if(lcd.displaydata.getweight == true){
-
-            }
-            else{
-                
-            }
-        }
-        break;
-        case 1:
-        {
-            if(lcd.displaydata.getpressure == true){
-
-            }
-            else{
-                
-            }
-            if(lcd.displaydata.gettemp == true){
-
-            }
-            else{
-                
-            }
-            if(lcd.displaydata.gettemp_of_motors == true){
-
-            }
-            else{
-                
-            }
-            if(lcd.displaydata.getcurrent == true){
-
-            }
-            else{
-
-            }
-        }
-        break;
-        default:
-            break;
+    }
+    else if(lcd.page == 1){
+        
     }
 }
 
