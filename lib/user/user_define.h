@@ -68,6 +68,7 @@
 */
 
 #define TIME_TICK_CYCLE_DEFINE  100
+#define SENSOR_TICK_CYCLE_DEFINE  25
 
 #define SELECT_YOUR_ISR     0
 

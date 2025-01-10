@@ -1075,10 +1075,28 @@ static uint8_t lcd_set_serial_baudrate_handle(lcd_t *lcd){
 
 static void display_data_pos_propeller_callback(lcd_t lcd){
     if(lcd.page == 0){
-
+        if(lcd.displaydata.getweight==true){
+            lcdglobal.setCursor(11, 0);
+            lcdglobal.print(lcd.display.weight);
+        }
+        if(lcd.displaydata.getrpm==true){
+            lcdglobal.setCursor(11, 1);
+            lcdglobal.print(lcd.display.rpm);
+        }
+        if(lcd.displaydata.getrads==true){
+            lcdglobal.setCursor(11, 2);
+            lcdglobal.print(lcd.display.rads);
+        }
     }
     else if(lcd.page == 1){
-        
+        if(lcd.displaydata.gettemp==true){
+            lcdglobal.setCursor(14, 1);
+            lcdglobal.print(lcd.display.temp);
+        }
+        if(lcd.displaydata.getpressure==true){
+            lcdglobal.setCursor(14, 3);
+            lcdglobal.print(lcd.display.pressure);
+        }
     }
 }
 

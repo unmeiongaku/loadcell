@@ -28,7 +28,9 @@ void loop(){
   // put your main code here, to run repeatedly:uint16_t proevent;
   uint16_t proevent = 0;
   static uint32_t current_time = millis();
+  static uint32_t se_cur_time = millis();
   static proobject_tick_event_t te;
+  static proobject_sensor_event_t se;
   // put your main code here, to run repeatedly:
   proobject_user_event_t ue;
 
@@ -84,6 +86,17 @@ void loop(){
     te.super.sig = TIME_TICK_SIG;
     if(++te.ss > 10) te.ss = 1;
       proobject_event_dispatcher(&A0s,&te.super);
+  }
+  //5. dispatch the time tick event for SENSOR
+  if(millis() - current_time  >= SENSOR_TICK_CYCLE_DEFINE){
+#if ENABLE_TICK_LED == 1
+    digitalWrite(LED_TICK_CALLBACK, !digitalRead(LED_TICK_CALLBACK));
+#endif
+    //100ms has passed
+    se_cur_time = millis();
+    se.super.sig = SENSOR_TICK_SIG;
+    if(++se.ss > 10) se.ss = 1;
+      proobject_event_dispatcher(&A0s,&se.super);
   }
 }
 

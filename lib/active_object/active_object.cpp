@@ -596,17 +596,20 @@ static event_status_t proobject_state_handle_POSSITIVE_PROPELLER_SM(proobject_t 
         }
         case TIME_TICK_SIG:
         {
+            mobj->dlcd.display.weight = mobj->globaldata.weight;
+            mobj->dlcd.display.rpm = mobj->globaldata.rpm;
+            mobj->dlcd.display.rads = mobj->globaldata.rads;
+            mobj->dlcd.display.temp = mobj->bmp280.temp;
+            mobj->dlcd.display.pressure = mobj->bmp280.pressure;
             display_data(mobj->dlcd);
-            float weight = hx711_get_weight(&mobj->loadcell_global);
-            float rpm,rads;
-            get_motor_rpm_rads(&rpm,&rads);
-            Serial.print("&");
-            Serial.print(weight);
-            Serial.print(";");
-            Serial.print(rpm);
-            Serial.print(";");
-            Serial.println(rads);
             return EVENT_HANDLED; 
+        }
+        case SENSOR_TICK_SIG:
+        {
+            my_bmp280_get_data(&mobj->bmp280);
+            mobj->globaldata.weight = hx711_get_weight(&mobj->loadcell_global);
+            get_motor_rpm_rads(&mobj->globaldata.rpm,&mobj->globaldata.rads);
+            return EVENT_HANDLED;
         }
         case BACK_SIG:
         {
@@ -709,6 +712,9 @@ static void dispatch_signals(event_t const * const e){
         // case TIME_TICK_SIG:
         //     serial_sprintln_char("TIME_TICK_SIG");
         // break;
+        // case SENSOR_TICK_SIG:
+        //     serial_sprintln_char("SENSOR_TICK_SIG");
+        // break;
         case SPRINT_DATA_SIG:
             serial_sprintln_char("SPRINT_DATA_SIG");
         break;
@@ -732,7 +738,7 @@ static void dispatch_signals(event_t const * const e){
 }
 
 static void sprint_signal(proobject_t *const mobj, event_t const * const e){
-    if(e->sig != TIME_TICK_SIG){
+    if(e->sig != TIME_TICK_SIG && e->sig != SENSOR_TICK_SIG){
         switch(mobj->active_state){
             case MENU_SM:
                 serial_sprintln_char("MENU_SM\n");

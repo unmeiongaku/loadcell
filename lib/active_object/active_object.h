@@ -37,6 +37,7 @@ typedef enum{
     CCW_SIG,
 /*Internal transition sig*/
     TIME_TICK_SIG,
+    SENSOR_TICK_SIG,
 /*button sm transition sig*/
     SPRINT_DATA_SIG, 
     DISPLAY_DATA_SIG, 
@@ -116,6 +117,11 @@ typedef struct{
     uint8_t ss;
 }proobject_tick_event_t;
 
+/* For tick event */
+typedef struct{
+    event_t super;
+    uint8_t ss;
+}proobject_sensor_event_t;
 
 void proobject_init(proobject_t *const mobj);
 event_status_t proobject_state_machine(proobject_t *const mobj, event_t const * const e);
