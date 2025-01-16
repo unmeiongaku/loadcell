@@ -1087,6 +1087,9 @@ static void display_data_pos_propeller_callback(lcd_t lcd){
             lcdglobal.setCursor(11, 2);
             lcdglobal.print(lcd.display.rads);
         }
+        if(lcd.displaydata.getcurrent==true){
+            
+        }
     }
     else if(lcd.page == 1){
         if(lcd.displaydata.gettemp==true){
@@ -1097,6 +1100,13 @@ static void display_data_pos_propeller_callback(lcd_t lcd){
             lcdglobal.setCursor(14, 3);
             lcdglobal.print(lcd.display.pressure);
         }
+        if(lcd.displaydata.getvoltage==true){
+            
+        }
+        if(lcd.displaydata.gettemp_of_motors==true){
+            
+        }
+    
     }
 }
 

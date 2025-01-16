@@ -3,3 +3,7 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+stm32/.metadata/
+stm32/CalMotorRPM/.settings/
+stm32/CalMotorRPM/Debug/
+stm32/CalMotorRPM/Drivers/
