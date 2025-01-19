@@ -9,6 +9,7 @@
 #include "sprint_serial_data.h"
 #include "myeeprom.h"
 #include "EEPROM.h"
+#include "motorrpm.h"
 
 static event_status_t proobject_state_handle_MENU_SM(proobject_t *const mobj, event_t const *const e);
 static event_status_t proobject_state_handle_SPINT_DATA_SM(proobject_t *const mobj, event_t const *const e);
@@ -112,33 +113,34 @@ static void save_status_sprint_from_serial_to_lcd(proobject_t *const mobj){
 static uint32_t rpmtimer = millis();
 static motor_counter_t motors;
 
-void roundcounter() {
-  motors.totalcnt++;
-  //digitalWrite(LED_RPM_INTERRUPT, !digitalRead(LED_RPM_INTERRUPT));
-  //Serial.println(motors.totalcnt);
-}
+// void roundcounter() {
+//   motors.totalcnt++;
+//   //digitalWrite(LED_RPM_INTERRUPT, !digitalRead(LED_RPM_INTERRUPT));
+//   //Serial.println(motors.totalcnt);
+// }
 
-uint8_t get_motor_rpm_rads(float *rpm, float *rads);
+// uint8_t get_motor_rpm_rads(float *rpm, float *rads);
 
-uint8_t get_motor_rpm_rads(float *rpm, float *rads){
-    uint32_t magpertick;
-    magpertick = motors.totalcnt - motors.lastcounter;
-    float rollpertick;
-    rollpertick = (float)magpertick/(float)7.0;
-    *rpm = rollpertick*600.0;
-    *rads =  *rpm * (2 * M_PI / 60);
-    motors.lastcounter = motors.totalcnt;
-    return 0;
-}
+// uint8_t get_motor_rpm_rads(float *rpm, float *rads){
+//     uint32_t magpertick;
+//     magpertick = motors.totalcnt - motors.lastcounter;
+//     float rollpertick;
+//     rollpertick = (float)magpertick/(float)7.0;
+//     *rpm = rollpertick*600.0;
+//     *rads =  *rpm * (2 * M_PI / 60);
+//     motors.lastcounter = motors.totalcnt;
+//     return 0;
+// }
 
 
 void proobject_init(proobject_t *const mobj){
     /*Serial Print Init*/
     serial_sprint_data_init(&mobj->globalsprint);
     /*Interrup RPM*/
-    pinMode(RPM_INTERRUPT_GPIO,INPUT_PULLUP);
-    pinMode(LED_RPM_INTERRUPT,OUTPUT);
-    attachInterrupt(digitalPinToInterrupt(RPM_INTERRUPT_GPIO), roundcounter, FALLING);
+    // // pinMode(RPM_INTERRUPT_GPIO,INPUT_PULLUP);
+    // pinMode(LED_RPM_INTERRUPT,OUTPUT);
+    // // attachInterrupt(digitalPinToInterrupt(RPM_INTERRUPT_GPIO), roundcounter, FALLING);
+    motor_serial_init();
     /*Button Init*/
     pinMode(BUTTON_SETTING_SIG,INPUT);
     pinMode(BUTTON_BACK_SIG,INPUT);
@@ -608,7 +610,7 @@ static event_status_t proobject_state_handle_POSSITIVE_PROPELLER_SM(proobject_t 
         {
             my_bmp280_get_data(&mobj->bmp280);
             mobj->globaldata.weight = hx711_get_weight(&mobj->loadcell_global);
-            get_motor_rpm_rads(&mobj->globaldata.rpm,&mobj->globaldata.rads);
+            get_rpm_rads(&mobj->globaldata.rpm,&mobj->globaldata.rads);
             return EVENT_HANDLED;
         }
         case BACK_SIG:
