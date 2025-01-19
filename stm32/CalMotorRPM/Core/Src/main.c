@@ -18,15 +18,29 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "tim.h"
+#include "usart.h"
+#include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "user_define.h"
+#include "delay_us.h"
+#include "math.h"
+#include "stm32f4xx_it.h"
+#include "string.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef struct{
+	uint32_t currentcnt;
+	uint32_t latscnt;
+	float rpm;
+	float rad;
+}motor_calculation_t;
 
+static motor_calculation_t calmotor;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -47,7 +61,6 @@
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -85,7 +98,14 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_USART1_UART_Init();
+  MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
+  HAL_TIM_Base_Start(&TIM_DELAY_US);
+  calmotor.currentcnt  = 0;
+  calmotor.latscnt = 0;
+
+  char buffer[50] = {0.0};
 
   /* USER CODE END 2 */
 
@@ -94,8 +114,15 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-
     /* USER CODE BEGIN 3 */
+	  calmotor.currentcnt = get_rpm_cnt();
+	  calmotor.rpm = (float)((float)(calmotor.currentcnt - calmotor.latscnt)/(float)7.0);
+	  calmotor.rpm = calmotor.rpm*600;
+	  calmotor.rad = calmotor.rpm*2*M_PI;
+	  calmotor.latscnt = calmotor.currentcnt;
+	  sprintf(buffer, "%f,%.2f\n", calmotor.rpm, calmotor.rad);
+	  HAL_UART_Transmit(&huart1, (uint8_t *)buffer, strlen(buffer), HAL_MAX_DELAY);
+	  delay_ms(100);
   }
   /* USER CODE END 3 */
 }
@@ -144,23 +171,6 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-}
-
-/**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_GPIO_Init(void)
-{
-/* USER CODE BEGIN MX_GPIO_Init_1 */
-/* USER CODE END MX_GPIO_Init_1 */
-
-  /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-
-/* USER CODE BEGIN MX_GPIO_Init_2 */
-/* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */

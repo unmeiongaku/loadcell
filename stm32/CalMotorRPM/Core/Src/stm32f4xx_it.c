@@ -26,7 +26,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
-
+static uint32_t rpmcnt;
 /* USER CODE END TD */
 
 /* Private define ------------------------------------------------------------*/
@@ -198,6 +198,30 @@ void SysTick_Handler(void)
 /* please refer to the startup file (startup_stm32f4xx.s).                    */
 /******************************************************************************/
 
+/**
+  * @brief This function handles EXTI line[9:5] interrupts.
+  */
+void EXTI9_5_IRQHandler(void)
+{
+  /* USER CODE BEGIN EXTI9_5_IRQn 0 */
+
+  /* USER CODE END EXTI9_5_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(RPM_INTERRUPT_Pin);
+  /* USER CODE BEGIN EXTI9_5_IRQn 1 */
+
+  /* USER CODE END EXTI9_5_IRQn 1 */
+}
+
 /* USER CODE BEGIN 1 */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+	if(GPIO_Pin==RPM_INTERRUPT_Pin){
+		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+		rpmcnt++;
+	}
+}
+
+uint32_t get_rpm_cnt(){
+	return rpmcnt;
+}
 
 /* USER CODE END 1 */
